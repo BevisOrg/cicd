@@ -1,25 +1,35 @@
 name: setup-env
 
-description: Prepare build environment
+description: Setup CI environment
 
 inputs:
+  env: 
+    required: true
+    default: dev
+    description: Environment to setup
+
   registry:
     required: false
-    description: 'Registry to use for authentication'
+    description: Registry to use for authentication
   username:
     required: false
-    description: 'Username to use for authentication'
+    description: Username to use for authentication
   password:
     required: false
-    description: 'Password to use for authentication'
+    description: Password to use for authentication
 
 runs:
   using: 'composite'
   steps:
-    - name: Login docker registry
+    - name: Docker login
       shell: bash
       run: |
         if [ -n "${{ inputs.registry }}" ]; then
           docker login ${{ inputs.registry }} -u ${{ inputs.username }} -p ${{ inputs.password }}
         fi
-  
+
+    - name: Install tools
+      shell: bash
+      run: |
+        apt-get update && apt-get install -y curl ca-certificates
+      
