@@ -1,13 +1,20 @@
-name: go-build
+name: builder
 
 on:
   workflow_call:
+    inputs:
+      lang:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
         with:
           go-version: 1.22

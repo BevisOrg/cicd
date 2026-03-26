@@ -1,0 +1,25 @@
+name: setup-env
+
+description: Prepare build environment
+
+inputs:
+  registry:
+    required: false
+    description: 'Registry to use for authentication'
+  username:
+    required: false
+    description: 'Username to use for authentication'
+  password:
+    required: false
+    description: 'Password to use for authentication'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Login docker registry
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.registry }}" ]; then
+          docker login ${{ inputs.registry }} -u ${{ inputs.username }} -p ${{ inputs.password }}
+        fi
+  
