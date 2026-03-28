@@ -42,15 +42,27 @@ permissions:
 
 jobs:
   build:
-      
+    runs-on: [self-hosted, linux]
     steps:
-      if: ${{ inputs.lang == 'node' }}
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+
+      - if: ${{ inputs.lang == 'node' }}
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.version }}
-      
-      if: ${{ inputs.lang == 'go' }}
-      - uses: ./builds/build-go.yml
+
+      - if: ${{ inputs.lang == 'node' }}
+        name: Install dependencies
+        run: ${{ inputs.node_install_cmd }}
+        working-directory: ${{ inputs.working_dir }}
+
+      - if: ${{ inputs.lang == 'node' }}
+        name: Build (Node)
+        run: ${{ inputs.node_build_cmd }}
+        working-directory: ${{ inputs.working_dir }}
+
+      - if: ${{ inputs.lang == 'go' }}
+        uses: ../../builds/build-go.yml
         with:
           version: ${{ inputs.version }}
           working_dir: ${{ inputs.working_dir }}
