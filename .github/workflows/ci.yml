@@ -1,0 +1,58 @@
+name: builder
+
+on:
+  workflow_call:
+    inputs:
+      lang:
+        description: "Language to build"
+        type: string
+        required: true
+      version:
+        description: "version of language"
+        type: string
+        required: true
+      working_dir:
+        description: "working directory"
+        type: string
+        required: false
+        default: "app"
+      node_install_cmd:
+        description: "command to install dependencies"
+        type: string
+        required: false
+        default: "npm install"
+      node_build_cmd:
+        description: "command to build"
+        type: string
+        required: false
+        default: "npm run build"
+      app_name:
+        description: "name of application"
+        type: string
+        required: false
+        default: "app"
+      main_dir:
+        description: "main directory"
+        type: string
+        required: false
+        default: "cmd/server"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+      
+    steps:
+      if: ${{ inputs.lang == 'node' }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.version }}
+      
+      if: ${{ inputs.lang == 'go' }}
+      - uses: ./builds/build-go.yml
+        with:
+          version: ${{ inputs.version }}
+          working_dir: ${{ inputs.working_dir }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}

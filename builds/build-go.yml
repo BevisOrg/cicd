@@ -1,0 +1,47 @@
+name: build-go
+description: Build Go application
+
+inputs:
+  version:
+    description: "version of Go"
+    type: string
+    required: true
+  working_dir:
+    description: "working directory"
+    type: string
+    required: false
+    default: "app"
+  app_name:
+    description: "name of application"
+    type: string
+    required: false
+    default: "app"
+  main_dir:
+    description: "main directory"
+    type: string
+    required: false
+    default: "cmd/server"
+
+permissions:
+  contents: read
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ inputs.version }}
+    
+    - name: Download dependencies
+      shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        go mod download
+        go mod tidy
+    
+    - name: Build application
+      shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        go build -o ${{ inputs.app_name }} ${{ inputs.main_dir }}/main.go
