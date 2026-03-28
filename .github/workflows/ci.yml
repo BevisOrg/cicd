@@ -62,7 +62,7 @@ jobs:
         working-directory: ${{ inputs.working_dir }}
 
       - if: ${{ inputs.lang == 'go' }}
-        uses: ../../builds/build-go.yml
+        uses: ./builds/build-go
         with:
           version: ${{ inputs.version }}
           working_dir: ${{ inputs.working_dir }}
