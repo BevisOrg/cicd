@@ -11,7 +11,13 @@ jobs:
       - name: Print hello
         run: echo "Runner is working 🚀"
 
+      - name: Debug before checkout
+        run: ls -R
+
       - uses: actions/checkout@v6
-      
+
+      - name: Debug file structure
+        run: ls -R
+
       - name: Call action
-        uses: ./builds/action.yml
+        uses: ./builds
