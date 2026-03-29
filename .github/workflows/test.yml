@@ -11,13 +11,17 @@ jobs:
       - name: Print hello
         run: echo "Runner is working 🚀"
 
-      - name: Debug before checkout
-        run: ls -R
+      - name: Checkout cicd
+        uses: actions/checkout@v6
+        with: 
+          repository: BevisOrg/cicd
+          path: cicd
 
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
       - name: Debug file structure
         run: ls -R
 
       - name: Call action
-        uses: ./builds
+        uses: ./cicd/builds
