@@ -11,5 +11,7 @@ jobs:
       - name: Print hello
         run: echo "Runner is working 🚀"
 
+      - uses: actions/checkout@v6
+      
       - name: Call action
         uses: ./builds/action.yml
