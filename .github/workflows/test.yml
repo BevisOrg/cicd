@@ -11,8 +11,5 @@ jobs:
       - name: Print hello
         run: echo "Runner is working 🚀"
 
-      - name: Show system info
-        run: |
-          uname -a
-          whoami
-          pwd
+      - name: Call action
+        uses: ./builds/action.yml
