@@ -1,0 +1,40 @@
+name: Build Node App
+description: Build Node application
+
+inputs:
+  version:
+    description: "version of Node"
+    required: true
+  working_dir:
+    description: "working directory"
+    required: false
+    default: "app"
+  app_name:
+    description: "name of application"
+    required: false
+    default: "app"
+  main_dir:
+    description: "main directory"
+    required: false
+    default: "cmd/server"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.version }}
+        cache: npm
+
+    - name: Download Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        npm ci
+
+    - name: Build Application
+      shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        npm run build

@@ -16,16 +16,6 @@ on:
         type: string
         required: false
         default: "app"
-      node_install_cmd:
-        description: "command to install dependencies"
-        type: string
-        required: false
-        default: "npm install"
-      node_build_cmd:
-        description: "command to build"
-        type: string
-        required: false
-        default: "npm run build"
       app_name:
         description: "name of application"
         type: string
@@ -46,23 +36,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - if: ${{ inputs.lang == 'node' }}
-        uses: actions/setup-node@v6
+      - name: Checkout cicd
+        uses: actions/checkout@v6
         with:
-          node-version: ${{ inputs.version }}
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup
+        uses: ./cicd/actions/setup
 
       - if: ${{ inputs.lang == 'node' }}
-        name: Install dependencies
-        run: ${{ inputs.node_install_cmd }}
-        working-directory: ${{ inputs.working_dir }}
-
-      - if: ${{ inputs.lang == 'node' }}
-        name: Build (Node)
-        run: ${{ inputs.node_build_cmd }}
-        working-directory: ${{ inputs.working_dir }}
+        uses: ./actions/build-node
+        with:
+          version: ${{ inputs.version }}
 
       - if: ${{ inputs.lang == 'go' }}
-        uses: ./builds/build-go
+        uses: ./actions/build-go
         with:
           version: ${{ inputs.version }}
           working_dir: ${{ inputs.working_dir }}

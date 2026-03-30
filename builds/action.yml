@@ -1,9 +1,0 @@
-name: hello
-description: say hello
-
-runs:
-  using: composite
-  steps:
-    - name: Print hello
-      shell: bash
-      run: echo "Hello from custom action"

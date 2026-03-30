@@ -1,4 +1,4 @@
-name: build-go
+name: Build Go App
 description: Build Go application
 
 inputs:
@@ -22,18 +22,18 @@ runs:
   using: composite
   steps:
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ inputs.version }}
 
-    - name: Download dependencies
+    - name: Download Dependencies
       shell: bash
       working-directory: ${{ inputs.working_dir }}
       run: |
         go mod download
         go mod tidy
 
-    - name: Build application
+    - name: Build Application
       shell: bash
       working-directory: ${{ inputs.working_dir }}
       run: |
