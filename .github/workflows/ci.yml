@@ -3,6 +3,11 @@ name: builder
 on:
   workflow_call:
     inputs:
+      env:
+        description: "Environment"
+        default: "dev"
+        type: string
+        required: true
       lang:
         description: "Language to build"
         type: string
@@ -33,6 +38,7 @@ permissions:
 jobs:
   build:
     runs-on: self-hosted
+    environment: ${{ inputs.env }}
     steps:
       - uses: actions/checkout@v6
 
@@ -46,12 +52,12 @@ jobs:
         uses: ./cicd/actions/setup
 
       - if: ${{ inputs.lang == 'node' }}
-        uses: ./actions/build-node
+        uses: ./cicd/actions/build-node
         with:
           version: ${{ inputs.version }}
 
       - if: ${{ inputs.lang == 'go' }}
-        uses: ./actions/build-go
+        uses: ./cicd/actions/build-go
         with:
           version: ${{ inputs.version }}
           working_dir: ${{ inputs.working_dir }}

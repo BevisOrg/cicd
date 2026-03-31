@@ -6,15 +6,6 @@ inputs:
     required: true
     default: dev
     description: Environment to setup
-  registry:
-    required: false
-    description: Registry to use for authentication
-  username:
-    required: false
-    description: Username to use for authentication
-  password:
-    required: false
-    description: Password to use for authentication
 
 runs:
   using: composite
@@ -22,12 +13,4 @@ runs:
     - name: Login Registry
       shell: bash
       run: |
-        if [ -n "${{ inputs.registry }}" ]; then
-          docker login ${{ inputs.registry }} -u ${{ inputs.username }} -p ${{ inputs.password }}
-        fi
-
-    - name: Install Tools
-      shell: bash
-      run: |
-        apt-get update && apt-get install -y curl ca-certificates
-      
+        echo "${{ secrets.password }}" | docker login ${{ secrets.registry }} -u ${{ secrets.username }} --password-stdin
