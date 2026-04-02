@@ -16,11 +16,6 @@ on:
         description: "version of language"
         type: string
         required: true
-      working_dir:
-        description: "working directory"
-        type: string
-        required: false
-        default: "app"
       app_name:
         description: "name of application"
         type: string
@@ -81,7 +76,6 @@ jobs:
         uses: ./cicd/actions/build-node
         with:
           version: ${{ inputs.version }}
-          working_dir: ${{ inputs.working_dir }}
           app_name: ${{ inputs.app_name }}
           main_dir: ${{ inputs.main_dir }}
 
@@ -89,7 +83,6 @@ jobs:
         uses: ./cicd/actions/build-go
         with:
           version: ${{ inputs.version }}
-          working_dir: ${{ inputs.working_dir }}
           app_name: ${{ inputs.app_name }}
           main_dir: ${{ inputs.main_dir }}
 
