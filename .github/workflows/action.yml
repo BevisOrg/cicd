@@ -1,0 +1,134 @@
+name: builder
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        description: "Environment"
+        default: "dev"
+        type: string
+        required: true
+      lang:
+        description: "Language to build"
+        type: string
+        required: true
+      version:
+        description: "version of language"
+        type: string
+        required: true
+      working_dir:
+        description: "working directory"
+        type: string
+        required: false
+        default: "app"
+      app_name:
+        description: "name of application"
+        type: string
+        required: false
+        default: "app"
+      main_dir:
+        description: "main directory"
+        type: string
+        required: false
+        default: "cmd/server"
+      image_name:
+        description: "Docker image name (without registry), used for deploy"
+        type: string
+        required: false
+        default: "app"
+      dockerfile:
+        description: "Dockerfile path relative to working_dir"
+        type: string
+        required: false
+        default: "Dockerfile"
+      image_tag:
+        description: "Docker image tag (empty uses git tag name if ref is a tag, else commit SHA)"
+        type: string
+        required: false
+        default: ""
+      require_git_tag:
+        description: "If true, build and deploy run only when the caller ref is a git tag (refs/tags/*)"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ !inputs.require_git_tag || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Checkout cicd
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup
+        uses: ./cicd/actions/setup
+        with:
+          env: ${{ inputs.env }}
+          registry: ${{ secrets.registry }}
+          username: ${{ secrets.username }}
+          password: ${{ secrets.password }}
+
+      - if: ${{ inputs.lang == 'node' }}
+        uses: ./cicd/actions/build-node
+        with:
+          version: ${{ inputs.version }}
+          working_dir: ${{ inputs.working_dir }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+      - if: ${{ inputs.lang == 'go' }}
+        uses: ./cicd/actions/build-go
+        with:
+          version: ${{ inputs.version }}
+          working_dir: ${{ inputs.working_dir }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+  deploy:
+    if: ${{ !inputs.require_git_tag || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Checkout cicd
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup
+        uses: ./cicd/actions/setup
+        with:
+          env: ${{ inputs.env }}
+          registry: ${{ secrets.registry }}
+          username: ${{ secrets.username }}
+          password: ${{ secrets.password }}
+
+      - if: ${{ inputs.lang == 'node' }}
+        uses: ./cicd/actions/deploy-node
+        with:
+          registry: ${{ secrets.registry }}
+          image: ${{ inputs.image_name }}
+          tag: ${{ inputs.image_tag != '' && inputs.image_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha) }}
+          working_dir: ${{ inputs.working_dir }}
+          dockerfile: ${{ inputs.dockerfile }}
+
+      - if: ${{ inputs.lang == 'go' }}
+        uses: ./cicd/actions/deploy-go
+        with:
+          registry: ${{ secrets.registry }}
+          image: ${{ inputs.image_name }}
+          tag: ${{ inputs.image_tag != '' && inputs.image_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha) }}
+          working_dir: ${{ inputs.working_dir }}
+          dockerfile: ${{ inputs.dockerfile }}

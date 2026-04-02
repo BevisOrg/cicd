@@ -1,0 +1,32 @@
+name: Push
+description: Build and push Docker image for a Node application
+
+inputs:
+  registry:
+    description: "Docker registry host (same as docker login), e.g. ghcr.io/myorg"
+    required: true
+  image:
+    description: "Image name without registry prefix"
+    required: true
+  tag:
+    description: "Image tag"
+    required: true
+  working_dir:
+    description: "Docker build context directory"
+    required: false
+    default: "app"
+  dockerfile:
+    description: "Path to Dockerfile relative to working_dir"
+    required: false
+    default: "Dockerfile"
+
+runs:
+  using: composite
+  steps:
+    - name: Docker build and push
+      shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        IMAGE="${{ inputs.registry }}/${{ inputs.image }}:${{ inputs.tag }}"
+        docker build -f "${{ inputs.dockerfile }}" -t "$IMAGE" .
+        docker push "$IMAGE"
