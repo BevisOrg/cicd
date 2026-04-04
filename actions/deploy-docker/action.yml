@@ -19,10 +19,16 @@ runs:
       run: |
         IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:${{ github.sha }}"
         CONTAINER="${{ inputs.service_name }}"
+
+        cd cicd/services/${{ inputs.service_name }}
         
+        echo "===== Prepare env"
         echo "IMAGE=$IMAGE" > .env
         echo "CONTAINER=$CONTAINER" >> .env
         echo "PROFILE=$PROFILE" >> .env
         
-        cd cicd/services/${{ inputs.service_name }}
+        echo "===== Pull Image"
+        docker pull $IMAGE
+        
+        echo "===== Run App"
         docker compose up -d --force-recreate
