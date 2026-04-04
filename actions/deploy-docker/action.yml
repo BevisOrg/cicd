@@ -1,0 +1,24 @@
+name: Deploy Docker
+description: Deploy Docker
+
+inputs:
+  port:
+  env:
+    required: false
+    default: dev
+    description: Environment to setup
+
+runs:
+  using: composite
+  steps:
+    - name: Run App
+      shell: bash
+      run: |
+        IMAGE="${{ secrets.registry_username }}/${{ inputs.service_name }}:"
+        CONTAINER="${{ inputs.service_name }}"
+        
+        export IMAGE=$IMAGE
+        export CONTAINER=$CONTAINER
+        
+        cd cicd/services/$SERVICE
+        docker compose up -d --force-recreate

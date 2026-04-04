@@ -7,20 +7,15 @@ on:
         description: "Environment"
         default: "dev"
         type: string
-        required: true
+        required: false
       lang:
         description: "Language to build"
         type: string
-        required: true
+        required: false
       version:
         description: "version of language"
         type: string
-        required: true
-      working_dir:
-        description: "working directory"
-        type: string
         required: false
-        default: "app"
       app_name:
         description: "name of application"
         type: string
@@ -40,6 +35,39 @@ jobs:
     runs-on: self-hosted
     environment: ${{ inputs.env }}
     steps:
+      - name: Clone Repository ${{ inputs.app_name }}
+      - uses: actions/checkout@v6
+
+      - name: Checkout Repository CICD
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup Registry
+        uses: ./cicd/actions/setup
+
+      - if: ${{ inputs.lang == 'node' }}
+        name: Build Node App
+        uses: ./cicd/actions/build-node
+        with:
+          version: ${{ inputs.version }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+      - if: ${{ inputs.lang == 'go' }}
+        name: Build Go App
+        uses: ./cicd/actions/build-go
+        with:
+          version: ${{ inputs.version }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+  deploy:
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    needs: build
+    steps:
       - uses: actions/checkout@v6
 
       - name: Checkout cicd
@@ -47,19 +75,3 @@ jobs:
         with:
           repository: BevisOrg/cicd
           path: cicd
-
-      - name: Setup
-        uses: ./cicd/actions/setup
-
-      - if: ${{ inputs.lang == 'node' }}
-        uses: ./cicd/actions/build-node
-        with:
-          version: ${{ inputs.version }}
-
-      - if: ${{ inputs.lang == 'go' }}
-        uses: ./cicd/actions/build-go
-        with:
-          version: ${{ inputs.version }}
-          working_dir: ${{ inputs.working_dir }}
-          app_name: ${{ inputs.app_name }}
-          main_dir: ${{ inputs.main_dir }}

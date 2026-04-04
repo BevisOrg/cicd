@@ -1,0 +1,34 @@
+name: Dockerize builder
+
+on:
+  workflow_call:
+    inputs:
+     service_name:
+        description: service name
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Clone Repository ${{ inputs.app_name }}
+      - uses: actions/checkout@v6
+
+      - name: Checkout Repository CICD
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup Registry
+        uses: ./cicd/actions/setup
+
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Run App
+        uses: ./cicd/actions/deploy-docker

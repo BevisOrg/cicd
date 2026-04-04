@@ -21,7 +21,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Go
+    - name: Setup Node
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.version }}
