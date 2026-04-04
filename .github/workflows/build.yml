@@ -3,15 +3,15 @@ name: Dockerize builder
 on:
   workflow_call:
     inputs:
-     service_name:
+      service_name:
         description: service name
         type: string
         required: true
-    env:
-      description: "Environment"
-      default: "PROD"
-      type: string
-      required: false
+      env:
+        description: "Environment"
+        default: "PROD"
+        type: string
+        required: false
 
 permissions:
   contents: read
