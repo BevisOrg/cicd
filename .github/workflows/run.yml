@@ -5,7 +5,7 @@ on:
     inputs:
       env:
         description: "Environment"
-        default: "dev"
+        default: "PROD"
         type: string
         required: false
       lang:
