@@ -27,8 +27,8 @@ runs:
         echo "CONTAINER=$CONTAINER" >> .env
         echo "PROFILE=$PROFILE" >> .env
         
-        echo "===== Pull Image"
-        docker pull $IMAGE
+        echo "===== Pull Image $IMAGE"
+        docker pull "$IMAGE"
         
         echo "===== Run App"
         docker compose up -d --force-recreate
