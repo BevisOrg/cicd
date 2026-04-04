@@ -8,6 +8,8 @@ inputs:
     description: Environment to setup
   registry_username:
     required: false
+  service_name:
+    required: true
 
 runs:
   using: composite
@@ -18,8 +20,9 @@ runs:
         IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:${{ github.sha }}"
         CONTAINER="${{ inputs.service_name }}"
         
-        export IMAGE=$IMAGE
-        export CONTAINER=$CONTAINER
+        echo "IMAGE=$IMAGE" > .env
+        echo "CONTAINER=$CONTAINER" >> .env
+        echo "PROFILE=$PROFILE" >> .env
         
-        cd cicd/services/$SERVICE
+        cd cicd/services/${{ inputs.service_name }}
         docker compose up -d --force-recreate
