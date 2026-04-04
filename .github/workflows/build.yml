@@ -51,5 +51,5 @@ jobs:
       - name: Run App
         uses: ./cicd/actions/deploy-docker
         with:
-          service_name: ${{ secrets.service_name }}
+          service_name: ${{ inputs.service_name }}
           registry_username: ${{ secrets.REGISTRY_USERNAME }}
