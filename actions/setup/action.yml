@@ -1,9 +1,9 @@
-name: Setup
-description: Setup
+name: Setup Registry
+description: Setup Registry
 
 inputs:
   env: 
-    required: true
+    required: false
     default: dev
     description: Environment to setup
 
@@ -13,4 +13,21 @@ runs:
     - name: Login Registry
       shell: bash
       run: |
-        echo "${{ secrets.password }}" | docker login ${{ secrets.registry }} -u ${{ secrets.username }} --password-stdin
+        echo "${{ secrets.registry_password }}" | docker login -u ${{ secrets.registry_username }} --password-stdin
+        
+    - name: Build Image & Push
+      shell: bash
+      run: |
+        IMAGE="${{ secrets.registry_username }}/${{ inputs.service_name }}"
+        TAG="${{ github.sha }}"
+        
+        echo "Building image $IMAGE:$TAG"
+        
+        docker build \
+        -f "cicd/services/${{ inputs.service_name }}/Dockerfile" \
+        -t "$IMAGE:$TAG" \
+        -t "$IMAGE:latest" \
+        .
+        
+        docker push "$IMAGE:$TAG"
+        docker push "$IMAGE:latest"

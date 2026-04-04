@@ -1,0 +1,77 @@
+name: builder
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        description: "Environment"
+        default: "dev"
+        type: string
+        required: false
+      lang:
+        description: "Language to build"
+        type: string
+        required: false
+      version:
+        description: "version of language"
+        type: string
+        required: false
+      app_name:
+        description: "name of application"
+        type: string
+        required: false
+        default: "app"
+      main_dir:
+        description: "main directory"
+        type: string
+        required: false
+        default: "cmd/server"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    steps:
+      - name: Clone Repository ${{ inputs.app_name }}
+      - uses: actions/checkout@v6
+
+      - name: Checkout Repository CICD
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup Registry
+        uses: ./cicd/actions/setup
+
+      - if: ${{ inputs.lang == 'node' }}
+        name: Build Node App
+        uses: ./cicd/actions/build-node
+        with:
+          version: ${{ inputs.version }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+      - if: ${{ inputs.lang == 'go' }}
+        name: Build Go App
+        uses: ./cicd/actions/build-go
+        with:
+          version: ${{ inputs.version }}
+          app_name: ${{ inputs.app_name }}
+          main_dir: ${{ inputs.main_dir }}
+
+  deploy:
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Checkout cicd
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
