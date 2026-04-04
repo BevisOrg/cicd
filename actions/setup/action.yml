@@ -6,6 +6,16 @@ inputs:
     required: false
     default: dev
     description: Environment to setup
+  service_name:
+    required: true
+    description: service app
+  registry_username:
+    required: true
+    description: registry username
+  registry_password:
+    required: true
+    description: registry password
+
 
 runs:
   using: composite
@@ -13,12 +23,14 @@ runs:
     - name: Login Registry
       shell: bash
       run: |
-        echo "${{ secrets.registry_password }}" | docker login -u ${{ secrets.registry_username }} --password-stdin
+        echo "${{ inputs.registry_password }}" | docker login \
+          -u ${{ inputs.registry_username }} \
+          --password-stdin
         
     - name: Build Image & Push
       shell: bash
       run: |
-        IMAGE="${{ secrets.registry_username }}/${{ inputs.service_name }}"
+        IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}"
         TAG="${{ github.sha }}"
         
         echo "Building image $IMAGE:$TAG"

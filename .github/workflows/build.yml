@@ -26,6 +26,10 @@ jobs:
 
       - name: Setup Registry
         uses: ./cicd/actions/setup
+        with:
+          service_name: ${{ inputs.service_name }}
+          registry_username: ${{ secrets.registry_username }}
+          registry_password: ${{ secrets.registry_password }}
 
   deploy:
     runs-on: self-hosted
