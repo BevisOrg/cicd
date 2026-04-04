@@ -15,7 +15,7 @@ runs:
     - name: Run App
       shell: bash
       run: |
-        IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:"
+        IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:${{ github.sha }}"
         CONTAINER="${{ inputs.service_name }}"
         
         export IMAGE=$IMAGE
