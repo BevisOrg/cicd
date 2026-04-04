@@ -2,11 +2,12 @@ name: Deploy Docker
 description: Deploy Docker
 
 inputs:
-  port:
   env:
     required: false
     default: dev
     description: Environment to setup
+  registry_username:
+    required: false
 
 runs:
   using: composite
@@ -14,7 +15,7 @@ runs:
     - name: Run App
       shell: bash
       run: |
-        IMAGE="${{ secrets.registry_username }}/${{ inputs.service_name }}:"
+        IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:"
         CONTAINER="${{ inputs.service_name }}"
         
         export IMAGE=$IMAGE

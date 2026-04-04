@@ -21,7 +21,7 @@ jobs:
     runs-on: self-hosted
     environment: ${{ inputs.env }}
     steps:
-      - name: Clone Repository ${{ inputs.app_name }}
+      - name: Clone Repository ${{ inputs.service_name }}
         uses: actions/checkout@v6
 
       - name: Checkout Repository CICD
@@ -34,8 +34,8 @@ jobs:
         uses: ./cicd/actions/setup
         with:
           service_name: ${{ inputs.service_name }}
-          registry_username: ${{ secrets.registry_username }}
-          registry_password: ${{ secrets.registry_password }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
 
   deploy:
     needs: build
@@ -44,3 +44,6 @@ jobs:
     steps:
       - name: Run App
         uses: ./cicd/actions/deploy-docker
+        with:
+          service_name: ${{ secrets.REGISTRY_USERNAME }}
+          registry_username: ${{ inputs.service_name }}
