@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}"
-        TAG="${{ github.sha }}"
+        TAG="${{ github.ref_name }}"
         
         echo "=====Building image $IMAGE:$TAG"
         
