@@ -1,0 +1,13 @@
+{{/*
+Short name for legacy common.* partials (lib sub-templates).
+*/}}
+{{- define "common.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Full name for legacy common.* partials (simpler than my-app.fullname).
+*/}}
+{{- define "common.fullname" -}}
+{{- printf "%s-%s" .Release.Name (include "common.name" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}

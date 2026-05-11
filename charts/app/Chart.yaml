@@ -1,0 +1,22 @@
+apiVersion: v2
+name: app
+description: app chart
+type: application
+version: 1.0.0
+    
+# The version of the app that this contains
+appVersion: "1.0.0"
+
+# A list of the chart requirements
+dependencies:
+  - name: lib
+    version: 1.0.0
+    # Url of the chart repository
+    repository: file://../lib
+
+
+maintainers:
+  - name: Truong Thanh Binh
+    email: truongthanh.binh@vietcredit.com.vn
+    
+

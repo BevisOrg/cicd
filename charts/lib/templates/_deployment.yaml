@@ -1,0 +1,38 @@
+{{- define "common.deployment" -}}
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ include "common.fullname" . }}
+
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ include "common.name" . }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ include "common.name" . }}
+
+    spec:
+      containers:
+        - name: app
+
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: {{ .Values.service.port }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+{{- end }}
