@@ -1,0 +1,34 @@
+name: Deploy Docker
+description: Deploy Docker
+
+inputs:
+  env:
+    required: false
+    default: dev
+    description: Environment to setup
+  registry_username:
+    required: false
+  service_name:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Run App
+      shell: bash
+      run: |
+        IMAGE="${{ inputs.registry_username }}/${{ inputs.service_name }}:${{ github.ref_name }}"
+        CONTAINER="${{ inputs.service_name }}"
+
+        cd cicd/services/${{ inputs.service_name }}
+        
+        echo "===== Prepare env"
+        echo "IMAGE=$IMAGE" > .env
+        echo "CONTAINER=$CONTAINER" >> .env
+        echo "PROFILE=$PROFILE" >> .env
+        
+        echo "===== Pull Image $IMAGE"
+        docker pull "$IMAGE"
+        
+        echo "===== Run App"
+        docker compose up -d --force-recreate

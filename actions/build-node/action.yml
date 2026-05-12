@@ -1,9 +1,9 @@
-name: build-go
-description: Build Go application
+name: Build Node App
+description: Build Node application
 
 inputs:
   version:
-    description: "version of Go"
+    description: "version of Node"
     required: true
   working_dir:
     description: "working directory"
@@ -21,20 +21,20 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Go
-      uses: actions/setup-go@v5
+    - name: Setup Node
+      uses: actions/setup-node@v6
       with:
-        go-version: ${{ inputs.version }}
+        node-version: ${{ inputs.version }}
+        cache: npm
 
-    - name: Download dependencies
+    - name: Download Dependencies
       shell: bash
       working-directory: ${{ inputs.working_dir }}
       run: |
-        go mod download
-        go mod tidy
+        npm ci
 
-    - name: Build application
+    - name: Build Application
       shell: bash
       working-directory: ${{ inputs.working_dir }}
       run: |
-        go build -o ${{ inputs.app_name }} ${{ inputs.main_dir }}/main.go
+        npm run build

@@ -1,0 +1,55 @@
+name: Dockerize builder
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: service name
+        type: string
+        required: true
+      env:
+        description: "Environment"
+        default: "PROD"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: self-hosted
+    environment: ${{ inputs.env }}
+    steps:
+      - name: Clone Repository ${{ inputs.service_name }}
+        uses: actions/checkout@v6
+
+      - name: Checkout Repository CICD
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Setup Registry
+        uses: ./cicd/actions/setup
+        with:
+          service_name: ${{ inputs.service_name }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
+
+  deploy:
+    needs: build
+    environment: ${{ inputs.env }}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Repository CICD
+        uses: actions/checkout@v6
+        with:
+          repository: BevisOrg/cicd
+          path: cicd
+
+      - name: Run App
+        uses: ./cicd/actions/deploy-docker
+        with:
+          service_name: ${{ inputs.service_name }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
