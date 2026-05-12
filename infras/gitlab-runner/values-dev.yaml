@@ -1,0 +1,318 @@
+## The GitLab Server URL (with protocol) that want to register the runner against
+gitlabUrl: https://gitlab.your-domain.com/
+
+## How many runner pods to launch.
+replicas: 1
+
+## Unregister all runners before termination
+unregisterRunners: true
+
+## When stopping the runner, give it time to wait for its jobs to terminate.
+terminationGracePeriodSeconds: 3600
+
+## Configure the maximum number of concurrent jobs
+concurrent: 10
+
+## Number of seconds until the forceful shutdown operation times out and exits the process.
+shutdown_timeout: 0
+
+## Defines in seconds how often to check GitLab for new builds
+checkInterval: 3
+
+## Configure GitLab Runner's logging level. Available values are: debug, info, warn, error, fatal, panic
+logLevel: info
+
+## Configure GitLab Runner's maximum connection age for TLS keepalive connections.
+connectionMaxAge: "15m"
+
+## For RBAC support:
+rbac:
+  ## Specifies whether a Role and RoleBinding should be created
+  create: true
+
+  ## Define list of rules to be added to the rbac role permissions.
+  ## Each rule supports the keys:
+  ## - apiGroups: default "" (indicates the core API group) if missing or empty.
+  ## - resources: default "*" if missing or empty.
+  ## - verbs: default "*" if missing or empty.
+  ##
+  ## Read more about the recommended rules on the following link
+  ##
+  ## ref: https://docs.gitlab.com/runner/executors/kubernetes/index.html#configure-runner-api-permissions
+  ##
+  rules: []
+    # - resources: ["events"]
+    #   verbs: ["list", "watch"]
+    # - resources: ["namespaces"]
+    #   verbs: ["create", "delete"]
+    # - resources: ["pods"]
+    #   verbs: ["create","delete","get"]
+    # - apiGroups: [""]
+    #   resources: ["pods/attach","pods/exec"]
+    #   verbs: ["get","create","patch","delete"]
+    # - apiGroups: [""]
+    #   resources: ["pods/log"]
+    #   verbs: ["get","list"]
+    # - resources: ["secrets"]
+    #   verbs: ["create","delete","get","update"]
+    # - resources: ["serviceaccounts"]
+    #   verbs: ["get"]
+    # - resources: ["services"]
+    #   verbs: ["create","get"]
+
+  ## Run the gitlab-bastion container with the ability to deploy/manage containers of jobs
+  ## cluster-wide or only within namespace
+  clusterWideAccess: true
+
+  ## Use podSecurity Policy
+  ## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+  podSecurityPolicy:
+    enabled: false
+    resourceNames:
+      - gitlab-runner
+
+## Configure ServiceAccount
+##
+serviceAccount:
+  create: true
+  
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is `true`, a name is generated using the `gitlab-runner.fullname`` template
+  ##
+  name: ""
+  ## Additional custom annotations for the ServiceAccount, useful for annotations such as eks.amazonaws.com/role-arn.
+  ## Values may refer other values as the _tpl_ function is implicitly applied. Mind the quotes when using this, e.g.
+  ## serviceAccountAnnotations:
+  ##   eks.amazonaws.com/role-arn: "arn:aws:iam::{{ .Values.global.accountId }}:role/{{ .Values.global.iamRoleName }}"
+  ##
+  ## ref: https://docs.aws.amazon.com/eks/latest/userguide/specify-service-account-role.html
+  ##
+  annotations: {}
+  ## Specify one or more imagePullSecrets used for pulling the runner image
+  ##
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#add-imagepullsecrets-to-a-service-account
+  ##
+  imagePullSecrets: []
+
+## Configuration for the Pods that the runner launches for each new job
+runners:
+  ## Configure namespace where GitLab Runner job pods will be created
+  ## By default, job pods use the Release namespace (.Release.Namespace)
+  ## Set this value to run jobs in a different namespace than the runner deployment
+  ## This enables separation between runner management and job execution
+  ##
+  ## Example: Runner in "ops" namespace, jobs in "gitlab" namespace
+  # jobNamespace: ""
+
+  # runner configuration, where the multi line string is evaluated as a
+  # template so you can specify helm values inside of it.
+  #
+  # tpl: https://helm.sh/docs/howto/charts_tips_and_tricks/#using-the-tpl-function
+  # runner configuration: https://docs.gitlab.com/runner/configuration/advanced-configuration.html
+  config: |
+    [[runners]]
+      [runners.kubernetes]
+        namespace = "{{ default .Release.Namespace .Values.runners.jobNamespace }}"
+        image = "alpine"
+
+  ## Absolute path for an existing runner configuration file
+  ## Can be used alongside "volumes" and "volumeMounts" to use an external config file
+  ## Active if runners.config is empty or null
+  configPath: ""
+
+  ## When set, written verbatim as the runner's config.toml and `gitlab-runner
+  ## register` is skipped on boot. The supplied TOML is passed through `tpl`,
+  ## so Helm values can be interpolated as usual.
+  ##
+  ## configOverride must be a COMPLETE config.toml: it replaces the rendered
+  ## config in its entirety, so the following chart values have NO effect and
+  ## must be expressed directly in the TOML (or omitted):
+  ##
+  ##   - concurrent, checkInterval, shutdown_timeout, logLevel, logFormat,
+  ##     sentryDsn, connectionMaxAge
+  ##   - metrics.enabled / metrics.port  (set `listen_address = ":<port>"`)
+  ##   - sessionServer.*  (write [session_server] directly; placeholder
+  ##     substitution is also skipped)
+  ##   - runners.config, runners.configPath
+  ##   - runners.name, runners.tags, runners.locked, runners.protected,
+  ##     runners.runUntagged, runners.maximumTimeout, runners.executor,
+  ##     runners.jobNamespace
+  ##   - gitlabUrl  (set `url = "..."` under [[runners]])
+  ##   - runnerRegistrationToken / runnerToken  (the token lives in the TOML or
+  ##     is injected via extraEnv / extraEnvFromRefs / secrets)
+  ##
+  ## Pod-level values (extraEnv, secrets, certsSecretName, volumes, RBAC,
+  ## metrics Service/PodMonitor, ...) are unaffected.
+  ##
+  ## On boot the entrypoint runs `gitlab-runner verify --url=` so an invalid
+  ## token fails loudly instead of producing a runner that never picks up jobs.
+  ##
+  # configOverride: |
+  #   concurrent = 10
+  #   check_interval = 3
+  #   log_level = "info"
+  #
+  #   [[runners]]
+  #     name = "my-runner"
+  #     url = "https://gitlab.example.com/"
+  #     token = "glrt-xxxxxxxxxxxxxxxxxxxx"
+  #     executor = "kubernetes"
+  #     [runners.kubernetes]
+  #       namespace = "gitlab-runner"
+  #       image = "alpine"
+
+  ## Which executor should be used
+  ##
+  executor: kubernetes
+
+  ## Specify the name for the runner.
+  ##
+  name: "runner"
+
+  ## The name of the secret containing runner-token and runner-registration-token
+  secret: gitlab-runner
+
+## Configure securitycontext for the main container
+## ref: https://kubernetes.io/docs/concepts/security/pod-security-standards/
+##
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  privileged: false
+  capabilities:
+    drop: ["ALL"]
+
+## Configure resource requests and limits
+## ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+##
+resources: {}
+  # limits:
+  #   memory: 256Mi
+  #   cpu: 200m
+  #   ephemeral-storage: 512Mi
+  # requests:
+  #   memory: 128Mi
+  #   cpu: 100m
+  #   ephemeral-storage: 256Mi
+
+## Configure environment variables that will be present when the registration command runs
+## This provides further control over the registration process and the config.toml file
+## ref: `gitlab-runner register --help`
+## ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html
+##
+# envVars:
+#   - name: RUNNER_EXECUTOR
+#     value: kubernetes
+
+## Additional environment variables from key-value pairs.
+extraEnv: {}
+  # CACHE_S3_SERVER_ADDRESS: s3.amazonaws.com
+  # CACHE_S3_BUCKET_NAME: runners-cache
+  # CACHE_S3_BUCKET_LOCATION: us-east-1
+  # CACHE_SHARED: true
+
+## Additional environment variables from other data sources
+extraEnvFrom: {}
+  # CACHE_S3_ACCESS_KEY:
+  #   secretKeyRef:
+  #     name: s3access
+  #     key: accesskey
+  # CACHE_S3_SECRET_KEY:
+  #   secretKeyRef:
+  #     name: s3access
+  #     key: secretkey
+
+## Additional environment variables refs
+extraEnvFromRefs: []
+  # - secretRef:
+  #     name: gitlab-runner-cache-config
+
+## list of hosts and IPs that will be injected into the pod's hosts file
+hostAliases: []
+  # Example:
+  # - ip: "127.0.0.1"
+  #   hostnames:
+  #   - "foo.local"
+  #   - "bar.local"
+  # - ip: "10.1.2.3"
+  #   hostnames:
+  #   - "foo.remote"
+  #   - "bar.remote"
+
+## Secrets to be additionally mounted to the containers.
+## All secrets are mounted through init-runner-secrets volume
+## and placed as readonly at /init-secrets in the init container
+## and finally copied to an in-memory volume runner-secrets that is
+## mounted at /secrets.
+secrets: []
+  # Example:
+  # - name: my-secret
+  # - name: myOtherSecret
+  #   items:
+  #     - key: key_one
+  #       path: path_one
+
+## Boolean to turn off the automountServiceAccountToken in the deployment
+## ref: https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume
+##
+# automountServiceAccountToken: false
+
+## Additional config files to mount in the containers in `/configmaps`.
+##
+## Please note that a number of keys are reserved by the runner.
+## See https://gitlab.com/gitlab-org/charts/gitlab-runner/-/blob/main/templates/configmap.yaml
+## for a current list.
+configMaps: {}
+
+## Additional volumeMounts to add to the runner container
+##
+volumeMounts: []
+  # Example:
+  # - name: my-volume
+  #   mountPath: /mount/path
+
+## Additional volumes to add to the runner deployment
+##
+volumes: []
+  # Example:
+  # - name: my-volume
+  #   persistentVolumeClaim:
+  #     claimName: my-pvc
+
+## Array of extra K8s manifests to deploy
+##
+extraObjects: []
+# - apiVersion: external-secrets.io/v1
+#   kind: ExternalSecret
+#   metadata:
+#     name: '{{ include "gitlab-runner.secret" . }}'
+#   spec:
+#     refreshInterval: 1h
+#     secretStoreRef:
+#       kind: SecretStore
+#       name: my-secret-store
+#     target:
+#       template:
+#         data:
+#           runner-registration-token: "" # need to leave as an empty string for compatibility reasons
+#           runner-token: "{{`{{ .runnerToken }}`}}"
+#     dataFrom:
+#     - extract:
+#         key: my-secret-store-secret
+
+## Add additional containers to the Pod, e.g. to run as sidecars.
+##
+## Example:
+#  - name: docker
+#    image: docker:20.10-dind
+#    securityContext:
+#      privileged: true
+#    volumeMounts:
+#      - mountPath: /var/run/
+#        name: dind-socket
+#    lifecycle:
+#      postStart:
+#        exec:
+#          command: [ "sh", "-c", "until docker info; do sleep 1; done;" ]
+extraContainers: []
