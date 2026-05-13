@@ -1,0 +1,354 @@
+gitlabUrl: https://gitlab.company.com.vn
+
+## How many runner pods to launch.
+replicas: 2
+
+## Unregister all runners before termination
+unregisterRunners: true
+
+## When stopping the runner, give it time to wait for its jobs to terminate.
+terminationGracePeriodSeconds: 3600
+
+## Set the certsSecretName in order to pass custom certficates for GitLab Runner to use.
+concurrent: 10
+
+## Number of seconds until the forceful shutdown operation times out and exits the process.
+shutdown_timeout: 0
+
+## Defines in seconds how often to check GitLab for new builds
+checkInterval: 3
+
+## Configure GitLab Runner's logging level. Available values are: debug, info, warn, error, fatal, panic
+## ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-global-section
+##
+logLevel: info
+
+## Configure GitLab Runner's maximum connection age for TLS keepalive connections.
+connectionMaxAge: "15m"
+
+## A custom bash script that will be executed prior to the invocation of the
+## gitlab-runner process
+#
+#preEntrypointScript: |
+#  echo "hello"
+
+## Specify whether the runner should start the session server.
+## Defaults to false
+## ref:
+##
+## When sessionServer is enabled, the user can either provide a public publicIP
+## or rely on the external IP auto discovery.
+## When a serviceAccountName is used with the automounting to the pod disabled,
+## we recommend the usage of the publicIP
+sessionServer:
+  enabled: false
+  # annotations: {}
+  # timeout: 1800
+  # internalPort: 8093
+  # externalPort: 9000
+
+  #In case sessionServer.serviceType is NodePort. If not defined, auto NodePort will be assigned.
+  # nodePort: 30093
+
+  # publicIP: ""
+  # loadBalancerSourceRanges:
+  #   - 1.2.3.4/32
+
+  #Valid values: ClusterIP, Headless, NodePort, LoadBalancer
+  serviceType: LoadBalancer
+
+  ## Specify the services external traffic policy
+  ##
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-policies
+  ##
+  # externalTrafficPolicy:
+
+  ## Specify the services internal traffic policy
+  ##
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-policies
+  ##
+  # internalTrafficPolicy:
+
+  # if enabled, sessionServer.publicIP variable should be set to the host e.g. runner1.example.com
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    tls:
+      - secretName: gitlab-runner-session-server
+
+## For RBAC support:
+rbac:
+  ## Specifies whether a Role and RoleBinding should be created
+  ## If this value is set to `true`, `serviceAccount.create` should also be set to either `true` or `false`
+  ##
+  create: true
+
+  ## Define list of rules to be added to the rbac role permissions.
+  ## Each rule supports the keys:
+  ## - apiGroups: default "" (indicates the core API group) if missing or empty.
+  ## - resources: default "*" if missing or empty.
+  ## - verbs: default "*" if missing or empty.
+  ##
+  ## Read more about the recommended rules on the following link
+  ##
+  ## ref: https://docs.gitlab.com/runner/executors/kubernetes/index.html#configure-runner-api-permissions
+  ##
+  rules: []
+    # - resources: ["events"]
+    #   verbs: ["list", "watch"]
+    # - resources: ["namespaces"]
+    #   verbs: ["create", "delete"]
+    # - resources: ["pods"]
+    #   verbs: ["create","delete","get"]
+    # - apiGroups: [""]
+    #   resources: ["pods/attach","pods/exec"]
+    #   verbs: ["get","create","patch","delete"]
+    # - apiGroups: [""]
+    #   resources: ["pods/log"]
+    #   verbs: ["get","list"]
+    # - resources: ["secrets"]
+    #   verbs: ["create","delete","get","update"]
+    # - resources: ["serviceaccounts"]
+    #   verbs: ["get"]
+    # - resources: ["services"]
+    #   verbs: ["create","get"]
+
+  ## Run the gitlab-bastion container with the ability to deploy/manage containers of jobs
+  ## cluster-wide or only within namespace
+  clusterWideAccess: false
+
+  ## Use podSecurity Policy
+  ## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+  podSecurityPolicy:
+    enabled: false
+    resourceNames:
+      - gitlab-runner
+
+## Configure ServiceAccount
+##
+serviceAccount:
+  create: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is `true`, a name is generated using the `gitlab-runner.fullname`` template
+  ##
+  name: ""
+  ## Additional custom annotations for the ServiceAccount, useful for annotations such as eks.amazonaws.com/role-arn.
+  ## Values may refer other values as the _tpl_ function is implicitly applied. Mind the quotes when using this, e.g.
+  ## serviceAccountAnnotations:
+  ##   eks.amazonaws.com/role-arn: "arn:aws:iam::{{ .Values.global.accountId }}:role/{{ .Values.global.iamRoleName }}"
+  ##
+  ## ref: https://docs.aws.amazon.com/eks/latest/userguide/specify-service-account-role.html
+  ##
+  annotations: {}
+  ## Specify one or more imagePullSecrets used for pulling the runner image
+  ##
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#add-imagepullsecrets-to-a-service-account
+  ##
+  imagePullSecrets: []
+
+## Configuration for the Pods that the runner launches for each new job
+runners:
+  config: |
+    [[runners]]
+      [runners.kubernetes]
+        namespace = "{{ default .Release.Namespace .Values.runners.jobNamespace }}"
+        image = "alpine"
+        privileged = true
+
+  ## Which executor should be used
+  executor: kubernetes
+
+  ## Specify the name for the runner.
+  name: "runner-prod"
+
+  ## The name of the secret containing runner-token and runner-registration-token
+  secret: gitlab-runner
+
+  ## Distributed runners caching
+  ## ref: https://docs.gitlab.com/runner/configuration/autoscale.html#distributed-runners-caching
+  ##
+  ## If you want to use s3 based distributing caching:
+  ## First of all you need to uncomment General settings and S3 settings sections.
+  ##
+  ## Create a secret 's3access' containing 'accesskey' & 'secretkey'
+  ## ref: https://aws.amazon.com/blogs/security/wheres-my-secret-access-key/
+  ##
+  ## $ kubectl create secret generic s3access \
+  ##   --from-literal=accesskey="YourAccessKey" \
+  ##   --from-literal=secretkey="YourSecretKey"
+  ## ref: https://kubernetes.io/docs/concepts/configuration/secret/
+  ##
+  ## If you want to use gcs based distributing caching:
+  ## First of all you need to uncomment General settings and GCS settings sections.
+  ##
+  ## Access using credentials file:
+  ## Create a secret 'google-application-credentials' containing your application credentials file.
+  ## ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-runnerscachegcs-section
+  ## You could configure
+  ## $ kubectl create secret generic google-application-credentials \
+  ##   --from-file=gcs-application-credentials-file=./path-to-your-google-application-credentials-file.json
+  ## ref: https://kubernetes.io/docs/concepts/configuration/secret/
+  ##
+  ## Access using access-id and private-key:
+  ## Create a secret 'gcsaccess' containing 'gcs-access-id' & 'gcs-private-key'.
+  ## ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-runnerscachegcs-section
+  ## You could configure
+  ## $ kubectl create secret generic gcsaccess \
+  ##   --from-literal=gcs-access-id="YourAccessID" \
+  ##   --from-literal=gcs-private-key="YourPrivateKey"
+  ## ref: https://kubernetes.io/docs/concepts/configuration/secret/
+  ##
+  ## If you want to use Azure-based distributed caching:
+  ## First, uncomment General settings.
+  ##
+  ## Create a secret 'azureaccess' containing 'azure-account-name' & 'azure-account-key'
+  ## ref: https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction
+  ##
+  ## $ kubectl create secret generic azureaccess \
+  ##   --from-literal=azure-account-name="YourAccountName" \
+  ##   --from-literal=azure-account-key="YourAccountKey"
+  ## ref: https://kubernetes.io/docs/concepts/configuration/secret/
+
+  cache: {}
+    ## S3 the name of the secret.
+    # secretName: s3access
+    ## Use this line for access using gcs-access-id and gcs-private-key
+    # secretName: gcsaccess
+    ## Use this line for access using google-application-credentials file
+    # secretName: google-application-credentials
+    ## Use this line for access using Azure with azure-account-name and azure-account-key
+    # secretName: azureaccess
+    ##
+    ## When using cloud-native auth (e.g. Workload Identity) with the docker+machine
+    ## executor, set this to true to prevent the chart's entrypoint from globally
+    ## exporting cache credential env vars (CACHE_S3_*, GOOGLE_APPLICATION_CREDENTIALS,
+    ## CACHE_GCS_*, CACHE_AZURE_*). This allows subprocesses (e.g. docker-machine)
+    ## to use their own identity instead of inheriting the cache credentials.
+    ##
+    ## When this flag is set to true, you MUST configure cache credentials explicitly
+    ## in runners.config under [runners.cache.*], for example:
+    ##   [runners.cache.gcs]
+    ##     CredentialsFile = "/secrets/gcs-application-credentials-file"
+    ##     BucketName = "my-cache-bucket"
+    ## Otherwise the runner will not be able to access the cache.
+    ##
+    ## ref: https://gitlab.com/gitlab-com/gl-infra/production-engineering/-/work_items/28874
+    # disableGlobalCredentialsExport: false
+
+## Configure resource requests and limits
+## ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+resources: 
+  limits:
+    memory: 256Mi
+    cpu: 200m
+    # ephemeral-storage: 512Mi
+  requests:
+    memory: 128Mi
+    cpu: 100m
+    # ephemeral-storage: 256Mi
+
+## Additional environment variables from key-value pairs.
+extraEnv:
+  FF_USE_POD_ACTIVE_DEADLINE_SECONDS: "true"
+
+## Additional environment variables from other data sources
+extraEnvFrom: {}
+  # CACHE_S3_ACCESS_KEY:
+  #   secretKeyRef:
+  #     name: s3access
+  #     key: accesskey
+  # CACHE_S3_SECRET_KEY:
+  #   secretKeyRef:
+  #     name: s3access
+  #     key: secretkey
+
+## Additional environment variables refs
+extraEnvFromRefs: []
+  # - secretRef:
+  #     name: gitlab-runner-cache-config
+
+## list of hosts and IPs that will be injected into the pod's hosts file
+hostAliases: []
+  # Example:
+  # - ip: "127.0.0.1"
+  #   hostnames:
+  #   - "foo.local"
+  #   - "bar.local"
+  # - ip: "10.1.2.3"
+  #   hostnames:
+  #   - "foo.remote"
+  #   - "bar.remote"
+
+## Boolean to turn off the automountServiceAccountToken in the deployment
+## ref: https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume
+##
+# automountServiceAccountToken: false
+
+## Additional config files to mount in the containers in `/configmaps`.
+##
+## Please note that a number of keys are reserved by the runner.
+## See https://gitlab.com/gitlab-org/charts/gitlab-runner/-/blob/main/templates/configmap.yaml
+## for a current list.
+configMaps: {}
+
+## Labels to be added to configMaps
+##
+## Supports templating
+configMapLabels: {}
+  # Example:
+  # owner.team: <my_cool_team>
+  # owner.team: "{{ .Values.team }}"
+  # tags.{{ .Values.tag }}/env: "{{ .Values.environment }}"
+
+## Additional volumeMounts to add to the runner container
+##
+volumeMounts: []
+  # Example:
+  # - name: my-volume
+  #   mountPath: /mount/path
+
+## Additional volumes to add to the runner deployment
+##
+volumes: []
+  # Example:
+  # - name: my-volume
+  #   persistentVolumeClaim:
+  #     claimName: my-pvc
+
+## Array of extra K8s manifests to deploy
+##
+extraObjects: []
+# - apiVersion: external-secrets.io/v1
+#   kind: ExternalSecret
+#   metadata:
+#     name: '{{ include "gitlab-runner.secret" . }}'
+#   spec:
+#     refreshInterval: 1h
+#     secretStoreRef:
+#       kind: SecretStore
+#       name: my-secret-store
+#     target:
+#       template:
+#         data:
+#           runner-registration-token: "" # need to leave as an empty string for compatibility reasons
+#           runner-token: "{{`{{ .runnerToken }}`}}"
+#     dataFrom:
+#     - extract:
+#         key: my-secret-store-secret
+
+## Add additional containers to the Pod, e.g. to run as sidecars.
+##
+## Example:
+#  - name: docker
+#    image: docker:20.10-dind
+#    securityContext:
+#      privileged: true
+#    volumeMounts:
+#      - mountPath: /var/run/
+#        name: dind-socket
+#    lifecycle:
+#      postStart:
+#        exec:
+#          command: [ "sh", "-c", "until docker info; do sleep 1; done;" ]
+extraContainers: []
