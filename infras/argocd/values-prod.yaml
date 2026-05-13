@@ -1,0 +1,30 @@
+lobal:
+  domain: argocd.example.com
+
+# Bootstrap "app of apps": same intent as main.yaml, rendered by the chart via extra-manifests.
+extraObjects:
+  - |
+    apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: root
+      namespace: {{ .Release.Namespace }}
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/REPLACE_ORG/cicd.git
+        targetRevision: main
+        path: apps
+        directory:
+          recurse: true
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: {{ .Release.Namespace }}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
