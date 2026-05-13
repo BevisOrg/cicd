@@ -1,285 +1,111 @@
+global:
+  enabled: true
+
 injector:
   enabled: true
-  replicas: 1
+  replicas: 2
+  leaderElector:
+    enabled: true
+  image:
+    repository: "hashicorp/vault-k8s"
+    tag: "1.7.2"
+    pullPolicy: IfNotPresent
+  agentImage:
+    repository: "hashicorp/vault"
+    tag: "1.21.2"
+
+  logLevel: "info"
+  logFormat: "json"
+  revokeOnShutdown: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 server:
   enabled: true
+
+  image:
+    repository: "hashicorp/vault"
+    tag: "1.21.2"
+    pullPolicy: IfNotPresent
+
+  updateStrategyType: "OnDelete"
+
   logLevel: "info"
+  logFormat: "json"
+
   resources:
     requests:
-      memory: 128Mi
-      cpu: 100m
-    limits:
-      memory: 256Mi
       cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
 
   ingress:
     enabled: false
-    labels: {}
-      # traffic: external
-    annotations: {}
-      # |
-      # kubernetes.io/ingress.class: nginx
-      # kubernetes.io/tls-acme: "true"
-      #   or
-      # kubernetes.io/ingress.class: nginx
-      # kubernetes.io/tls-acme: "true"
-
-    # Optionally use ingressClassName instead of deprecated annotation.
-    # See: https://kubernetes.io/docs/concepts/services-networking/ingress/#deprecated-annotation
     ingressClassName: "nginx"
-
-    # As of Kubernetes 1.19, all Ingress Paths must have a pathType configured. The default value below should be sufficient in most cases.
-    # See: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types for other possible values.
-    pathType: Prefix
-
-    # When HA mode is enabled and K8s service registration is being used,
-    # configure the ingress to point to the Vault active service.
     activeService: true
     hosts:
-      - host: chart-example.local
+      - host: vault.local
         paths: []
-    ## Extra paths to prepend to the host configuration. This is useful when working with annotation based services.
-    extraPaths: []
-    # - path: /*
-    #   backend:
-    #     service:
-    #       name: ssl-redirect
-    #       port:
-    #         number: use-annotation
     tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
 
-  # Used to define custom readinessProbe settings
   readinessProbe:
     enabled: true
-    # If you need to use a http path instead of the default exec
-    # path: /v1/sys/health?standbyok=true
-
-    # Port number on which readinessProbe will be checked.
     port: 8200
-    # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
-    # Number of seconds after the container has started before probe initiates
     initialDelaySeconds: 5
-    # How often (in seconds) to perform the probe
     periodSeconds: 5
-    # Minimum consecutive successes for the probe to be considered successful after having failed
     successThreshold: 1
-    # Number of seconds after which the probe times out.
     timeoutSeconds: 3
-  # Used to enable a livenessProbe for the pods
+
   livenessProbe:
     enabled: false
-    # Used to define a liveness exec command. If provided, exec is preferred to httpGet (path) as the livenessProbe handler.
-    execCommand: []
-    # - /bin/sh
-    # - -c
-    # - /vault/userconfig/mylivenessscript/run.sh
-    # Path for the livenessProbe to use httpGet as the livenessProbe handler
     path: "/v1/sys/health?standbyok=true"
-    # Port number on which livenessProbe will be checked if httpGet is used as the livenessProbe handler
     port: 8200
-    # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
-    # Number of seconds after the container has started before probe initiates
     initialDelaySeconds: 60
-    # How often (in seconds) to perform the probe
     periodSeconds: 5
-    # Minimum consecutive successes for the probe to be considered successful after having failed
     successThreshold: 1
-    # Number of seconds after which the probe times out.
     timeoutSeconds: 3
 
-  # Optional duration in seconds the pod needs to terminate gracefully.
-  # See: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/
   terminationGracePeriodSeconds: 10
-
-  # Used to set the sleep time during the preStop step, if custom preStop
-  # commands are not set.
   preStopSleepSeconds: 5
 
-  # Deprecated: please use 'volumes' instead.
-  # extraVolumes is a list of extra volumes to mount. These will be exposed
-  # to Vault in the path `/vault/userconfig/<name>/`. The value below is
-  # an array of objects, examples are shown below.
-  extraVolumes: []
-    # - type: secret (or "configMap")
-    #   name: my-secret
-    #   path: null # default is `/vault/userconfig`
-
-  # volumes is a list of volumes made available to all containers. These are rendered
-  # via toYaml rather than pre-processed like the extraVolumes value.
-  # The purpose is to make it easy to share volumes between containers.
-  volumes: null
-  #   - name: plugins
-  #     emptyDir: {}
-
-  # volumeMounts is a list of volumeMounts for the main server container. These are rendered
-  # via toYaml rather than pre-processed like the extraVolumes value.
-  # The purpose is to make it easy to share volumes between containers.
-  volumeMounts: null
-  #   - mountPath: /usr/local/libexec/vault
-  #     name: plugins
-  #     readOnly: true
-
-  # Affinity Settings
-  # Commenting out or setting as empty the affinity variable, will allow
-  # deployment to single node services such as Minikube
-  # This should be either a multi-line string or YAML matching the PodSpec's affinity field.
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              app.kubernetes.io/name: {{ template "vault.name" . }}
-              app.kubernetes.io/instance: "{{ .Release.Name }}"
-              component: server
-          topologyKey: kubernetes.io/hostname
-
-  # Enables network policy for server pods
-  networkPolicy:
-    enabled: false
-    egress: []
-    # egress:
-    # - to:
-    #   - ipBlock:
-    #       cidr: 10.0.0.0/24
-    #   ports:
-    #   - protocol: TCP
-    #     port: 443
-    ingress:
-      - from:
-        - namespaceSelector: {}
-        ports:
-        - port: 8200
-          protocol: TCP
-        - port: 8201
-          protocol: TCP
 
   # Enables a headless service to be used by the Vault Statefulset
   service:
     enabled: true
-    # Enable or disable the vault-active service, which selects Vault pods that
-    # have labeled themselves as the cluster leader with `vault-active: "true"`.
     active:
       enabled: true
-      # Extra annotations for the service definition. This can either be YAML or a
-      # YAML-formatted multi-line templated string map of the annotations to apply
-      # to the active service.
       annotations: {}
-    # Enable or disable the vault-standby service, which selects Vault pods that
-    # have labeled themselves as a cluster follower with `vault-active: "false"`.
     standby:
       enabled: true
-      # Extra annotations for the service definition. This can either be YAML or a
-      # YAML-formatted multi-line templated string map of the annotations to apply
-      # to the standby service.
-      annotations: {}
-    # If enabled, the service selectors will include `app.kubernetes.io/instance: {{ .Release.Name }}`
-    # When disabled, services may select Vault pods not deployed from the chart.
-    # Does not affect the headless vault-internal service with `ClusterIP: None`
-    instanceSelector:
-      enabled: true
-    # clusterIP controls whether a Cluster IP address is attached to the
-    # Vault service within Kubernetes.  By default, the Vault service will
-    # be given a Cluster IP address, set to None to disable.  When disabled
-    # Kubernetes will create a "headless" service.  Headless services can be
-    # used to communicate with pods directly through DNS instead of a round-robin
-    # load balancer.
-    # clusterIP: None
-
-    # Configures the service type for the main Vault service.  Can be ClusterIP
-    # or NodePort.
-    #type: ClusterIP
-
-    # The IP family and IP families options are to set the behaviour in a dual-stack environment.
-    # Omitting these values will let the service fall back to whatever the CNI dictates the defaults
-    # should be.
-    # These are only supported for kubernetes versions >=1.23.0
-    #
-    # Configures the service's supported IP family policy, can be either:
-    #     SingleStack: Single-stack service. The control plane allocates a cluster IP for the Service, using the first configured service cluster IP range.
-    #     PreferDualStack: Allocates IPv4 and IPv6 cluster IPs for the Service.
-    #     RequireDualStack: Allocates Service .spec.ClusterIPs from both IPv4 and IPv6 address ranges.
-    ipFamilyPolicy: ""
-
-    # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well.
-    # Can be IPv4 and/or IPv6.
-    ipFamilies: []
-
-    # Do not wait for pods to be ready before including them in the services'
-    # targets. Does not apply to the headless service, which is used for
-    # cluster-internal communication.
     publishNotReadyAddresses: true
-
-    # The externalTrafficPolicy can be set to either Cluster or Local
-    # and is only valid for LoadBalancer and NodePort service types.
-    # The default value is Cluster.
-    # ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-traffic-policy
-    externalTrafficPolicy: Cluster
-
-    # If type is set to "NodePort", a specific nodePort value can be configured,
-    # will be random if left blank.
-    #nodePort: 30000
-
-    # When HA mode is enabled
-    # If type is set to "NodePort", a specific nodePort value can be configured,
-    # will be random if left blank.
-    #activeNodePort: 30001
-
-    # When HA mode is enabled
-    # If type is set to "NodePort", a specific nodePort value can be configured,
-    # will be random if left blank.
-    #standbyNodePort: 30002
-
-    # Port on which Vault server is listening
-    port: 8200
-    # Target port to which the service should be mapped to
-    targetPort: 8200
-    # Extra annotations for the service definition. This can either be YAML or a
-    # YAML-formatted multi-line templated string map of the annotations to apply
-    # to the service.
-    annotations: {}
 
   dataStorage:
     enabled: true
-    # Size of the PVC created
     size: 20Gi
-    # Location where the PVC will be mounted.
     mountPath: "/vault/data"
-    # Name of the storage class to use.  If null it will use the
-    # configured default Storage Class.
-    storageClass: null
-    # Access Mode of the storage device being used for the PVC
+    storageClass: "longhorn"
     accessMode: ReadWriteOnce
-    # Annotations to apply to the PVC
-    annotations: {}
-    # Labels to apply to the PVC
-    labels: {}
 
-  # This configures the Vault Statefulset to create a PVC for audit
-  # logs.  Once Vault is deployed, initialized, and unsealed, Vault must
-  # be configured to use this for audit logs.  This will be mounted to
-  # /vault/audit
-  # See https://developer.hashicorp.com/vault/docs/audit to know more
   auditStorage:
-    enabled: false
-    # Size of the PVC created
+    enabled: true
     size: 10Gi
-    # Location where the PVC will be mounted.
     mountPath: "/vault/audit"
-    # Name of the storage class to use.  If null it will use the
-    # configured default Storage Class.
-    storageClass: null
-    # Access Mode of the storage device being used for the PVC
+    storageClass: "longhorn"
     accessMode: ReadWriteOnce
-    # Annotations to apply to the PVC
-    annotations: {}
-    # Labels to apply to the PVC
-    labels: {}
+
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
 
   # Run Vault in "standalone" mode. This is the default mode that will deploy if
   # no arguments are given to helm. This requires a PVC for data storage to use
@@ -361,40 +187,4 @@ server:
 ui:
   enabled: true
   publishNotReadyAddresses: true
-  activeVaultPodOnly: false
-  serviceType: "ClusterIP"
-  serviceNodePort: null
-  externalPort: 8200
-  targetPort: 8200
-
-  # The IP family and IP families options are to set the behaviour in a dual-stack environment.
-  # Omitting these values will let the service fall back to whatever the CNI dictates the defaults
-  # should be.
-  # These are only supported for kubernetes versions >=1.23.0
-  #
-  # Configures the service's supported IP family, can be either:
-  #     SingleStack: Single-stack service. The control plane allocates a cluster IP for the Service, using the first configured service cluster IP range.
-  #     PreferDualStack: Allocates IPv4 and IPv6 cluster IPs for the Service.
-  #     RequireDualStack: Allocates Service .spec.ClusterIPs from both IPv4 and IPv6 address ranges.
-  serviceIPFamilyPolicy: ""
-
-  # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well
-  # Can be IPv4 and/or IPv6.
-  serviceIPFamilies: []
-
-  # The externalTrafficPolicy can be set to either Cluster or Local
-  # and is only valid for LoadBalancer and NodePort service types.
-  # The default value is Cluster.
-  # ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-traffic-policy
-  externalTrafficPolicy: Cluster
-
-  #loadBalancerSourceRanges:
-  #   - 10.0.0.0/16
-  #   - 1.78.23.3/32
-
-  # loadBalancerIP:
-
-  # Extra annotations to attach to the ui service
-  # This can either be YAML or a YAML-formatted multi-line templated string map
-  # of the annotations to apply to the ui service
-  annotations: {}
+  activeVaultPodOnly: true
