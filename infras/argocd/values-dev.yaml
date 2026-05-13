@@ -281,6 +281,9 @@ configs:
     # (e.g.)
     # otlp.address: ''
 
+    # Serve HTTP when TLS is terminated upstream (ingress / LB).
+    server.insecure: "true"
+
   # Argo CD RBAC policy configuration
   ## Ref: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/rbac.md
   rbac:

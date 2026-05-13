@@ -1,5 +1,10 @@
-lobal:
+global:
   domain: argocd.example.com
+
+configs:
+  params:
+    # Serve HTTP when TLS is terminated upstream (ingress / LB).
+    server.insecure: "true"
 
 # Bootstrap "app of apps": same intent as main.yaml, rendered by the chart via extra-manifests.
 extraObjects:
