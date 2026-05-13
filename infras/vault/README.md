@@ -11,6 +11,9 @@ helm install vault hashicorp/vault \
 --create-namespace
 ```
 
+
+## Init and unseal
+
 ## Document
 
 - [Vault trên Kubernetes](https://developer.hashicorp.com/vault/docs/platform/k8s)
