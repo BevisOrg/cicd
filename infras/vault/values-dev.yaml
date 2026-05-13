@@ -1,138 +1,111 @@
+global:
+  enabled: true
+
 injector:
   enabled: true
-  replicas: 1
+  replicas: 2
+  leaderElector:
+    enabled: true
+  image:
+    repository: "hashicorp/vault-k8s"
+    tag: "1.7.2"
+    pullPolicy: IfNotPresent
+  agentImage:
+    repository: "hashicorp/vault"
+    tag: "1.21.2"
+
+  logLevel: "info"
+  logFormat: "json"
+  revokeOnShutdown: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 server:
   enabled: true
-  logLevel: "info"
 
-  # Resource requests, limits, etc. for the server cluster placement. This
-  # should map directly to the value of the resources field for a PodSpec.
-  # By default no direct resource request is made.
+  image:
+    repository: "hashicorp/vault"
+    tag: "1.21.2"
+    pullPolicy: IfNotPresent
+
+  updateStrategyType: "OnDelete"
+
+  logLevel: "info"
+  logFormat: "json"
+
   resources:
     requests:
-      memory: 128Mi
-      cpu: 100m
-    limits:
-      memory: 256Mi
       cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
 
-  # Used to define custom readinessProbe settings
+  ingress:
+    enabled: false
+    ingressClassName: "nginx"
+    activeService: true
+    hosts:
+      - host: vault.local
+        paths: []
+    tls: []
+
   readinessProbe:
     enabled: true
-    # If you need to use a http path instead of the default exec
-    # path: /v1/sys/health?standbyok=true
-
-    # Port number on which readinessProbe will be checked.
     port: 8200
-    # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
-    # Number of seconds after the container has started before probe initiates
     initialDelaySeconds: 5
-    # How often (in seconds) to perform the probe
     periodSeconds: 5
-    # Minimum consecutive successes for the probe to be considered successful after having failed
     successThreshold: 1
-    # Number of seconds after which the probe times out.
     timeoutSeconds: 3
-  # Used to enable a livenessProbe for the pods
+
   livenessProbe:
     enabled: false
-    # Used to define a liveness exec command. If provided, exec is preferred to httpGet (path) as the livenessProbe handler.
-    execCommand: []
-    # - /bin/sh
-    # - -c
-    # - /vault/userconfig/mylivenessscript/run.sh
-    # Path for the livenessProbe to use httpGet as the livenessProbe handler
     path: "/v1/sys/health?standbyok=true"
-    # Port number on which livenessProbe will be checked if httpGet is used as the livenessProbe handler
     port: 8200
-    # When a probe fails, Kubernetes will try failureThreshold times before giving up
     failureThreshold: 2
-    # Number of seconds after the container has started before probe initiates
     initialDelaySeconds: 60
-    # How often (in seconds) to perform the probe
     periodSeconds: 5
-    # Minimum consecutive successes for the probe to be considered successful after having failed
     successThreshold: 1
-    # Number of seconds after which the probe times out.
     timeoutSeconds: 3
 
-  # Optional duration in seconds the pod needs to terminate gracefully.
-  # See: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/
   terminationGracePeriodSeconds: 10
-
-  # Used to set the sleep time during the preStop step, if custom preStop
-  # commands are not set.
   preStopSleepSeconds: 5
 
-  # Enables network policy for server pods
-  networkPolicy:
-    enabled: false
-    egress: []
-    # egress:
-    # - to:
-    #   - ipBlock:
-    #       cidr: 10.0.0.0/24
-    #   ports:
-    #   - protocol: TCP
-    #     port: 443
-    ingress:
-      - from:
-        - namespaceSelector: {}
-        ports:
-        - port: 8200
-          protocol: TCP
-        - port: 8201
-          protocol: TCP
 
-  # This configures the Vault Statefulset to create a PVC for data
-  # storage when using the file or raft backend storage engines.
-  # See https://developer.hashicorp.com/vault/docs/configuration/storage to know more
+  # Enables a headless service to be used by the Vault Statefulset
+  service:
+    enabled: true
+    active:
+      enabled: true
+      annotations: {}
+    standby:
+      enabled: true
+    publishNotReadyAddresses: true
+
   dataStorage:
     enabled: true
-    # Size of the PVC created
-    size: 5Gi
-    # Location where the PVC will be mounted.
+    size: 10Gi
     mountPath: "/vault/data"
-    # Name of the storage class to use.  If null it will use the
-    # configured default Storage Class.
-    storageClass: null
-    # Access Mode of the storage device being used for the PVC
+    storageClass: "longhorn"
     accessMode: ReadWriteOnce
-    # Annotations to apply to the PVC
-    annotations: {}
-    # Labels to apply to the PVC
-    labels: {}
 
-  # Persistent Volume Claim (PVC) retention policy
-  # ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention
-  # Example:
-  # persistentVolumeClaimRetentionPolicy:
-  #   whenDeleted: Retain
-  #   whenScaled: Retain
-  persistentVolumeClaimRetentionPolicy: {}
-
-  # This configures the Vault Statefulset to create a PVC for audit
-  # logs.  Once Vault is deployed, initialized, and unsealed, Vault must
-  # be configured to use this for audit logs.  This will be mounted to
-  # /vault/audit
-  # See https://developer.hashicorp.com/vault/docs/audit to know more
   auditStorage:
     enabled: false
-    # Size of the PVC created
     size: 10Gi
-    # Location where the PVC will be mounted.
     mountPath: "/vault/audit"
-    # Name of the storage class to use.  If null it will use the
-    # configured default Storage Class.
-    storageClass: null
-    # Access Mode of the storage device being used for the PVC
+    storageClass: "longhorn"
     accessMode: ReadWriteOnce
-    # Annotations to apply to the PVC
-    annotations: {}
-    # Labels to apply to the PVC
-    labels: {}
+
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
 
   # Run Vault in "standalone" mode. This is the default mode that will deploy if
   # no arguments are given to helm. This requires a PVC for data storage to use
@@ -209,54 +182,9 @@ server:
     # See https://developer.hashicorp.com/vault/docs/configuration/service-registration/kubernetes
     serviceDiscovery:
       enabled: true
-  
-  # Should the server pods run on the host network
-  hostNetwork: false
 
 # Vault UI
 ui:
-  # True if you want to create a Service entry for the Vault UI.
-  #
-  # serviceType can be used to control the type of service created. For
-  # example, setting this to "LoadBalancer" will create an external load
-  # balancer (for supported K8S installations) to access the UI.
   enabled: true
   publishNotReadyAddresses: true
-  # The service should only contain selectors for active Vault pod
-  activeVaultPodOnly: false
-  serviceType: "NodePort"
-  serviceNodePort: 30200
-  externalPort: 8200
-  targetPort: 8200
-
-  # The IP family and IP families options are to set the behaviour in a dual-stack environment.
-  # Omitting these values will let the service fall back to whatever the CNI dictates the defaults
-  # should be.
-  # These are only supported for kubernetes versions >=1.23.0
-  #
-  # Configures the service's supported IP family, can be either:
-  #     SingleStack: Single-stack service. The control plane allocates a cluster IP for the Service, using the first configured service cluster IP range.
-  #     PreferDualStack: Allocates IPv4 and IPv6 cluster IPs for the Service.
-  #     RequireDualStack: Allocates Service .spec.ClusterIPs from both IPv4 and IPv6 address ranges.
-  serviceIPFamilyPolicy: ""
-
-  # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well
-  # Can be IPv4 and/or IPv6.
-  serviceIPFamilies: []
-
-  # The externalTrafficPolicy can be set to either Cluster or Local
-  # and is only valid for LoadBalancer and NodePort service types.
-  # The default value is Cluster.
-  # ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-traffic-policy
-  externalTrafficPolicy: Cluster
-
-  #loadBalancerSourceRanges:
-  #   - 10.0.0.0/16
-  #   - 1.78.23.3/32
-
-  # loadBalancerIP:
-
-  # Extra annotations to attach to the ui service
-  # This can either be YAML or a YAML-formatted multi-line templated string map
-  # of the annotations to apply to the ui service
-  annotations: {}
+  activeVaultPodOnly: true
