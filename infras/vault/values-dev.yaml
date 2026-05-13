@@ -93,14 +93,14 @@ server:
     enabled: true
     size: 10Gi
     mountPath: "/vault/data"
-    storageClass: ""
+    storageClass: null
     accessMode: ReadWriteOnce
 
   auditStorage:
     enabled: false
     size: 10Gi
     mountPath: "/vault/audit"
-    storageClass: ""
+    storageClass: null
     accessMode: ReadWriteOnce
 
   persistentVolumeClaimRetentionPolicy:

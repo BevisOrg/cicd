@@ -5,10 +5,10 @@ helm repo add hashicorp https://helm.releases.hashicorp.com
 
 helm repo update
 
-helm install vault hashicorp/vault \
+helm upgrade --install vault hashicorp/vault \
 -n vault \
--f infras/vault/values-prod.yaml \
 --create-namespace
+-f infras/vault/values-prod.yaml \
 ```
 
 
